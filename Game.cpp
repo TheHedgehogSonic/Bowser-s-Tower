@@ -90,9 +90,11 @@ int main() {
 	srand((unsigned)time(0));
 	short damage;
 	bool connects;
-	// Setting player numbers
+	// Setting player numbers and wins
 	hero.setPlayerNum(1);
 	side.setPlayerNum(2);
+	hero.resetWins();
+	side.resetWins();
 	// Game loop
 	while (running) {
 		switch (sequence) {
@@ -102,8 +104,8 @@ int main() {
 			cout << "The high score is " << file.loadHighScore() << "\n\n";
 			setColor(15);
 			cout << "1. Start\n2. Change Ruleset (" << (ruleSet ? "Advanced" : "Basic") << ")\n" <<
-				"3. View Story\n4. How to Play\n5. Patch Notes\n";
-			getInput(5);
+				"3. View Story\n4. How to Play\n5. Patch Notes\n6. Hear a random trivia on retro sound chips\n";
+			getInput(6);
 
 			switch (response) {
 			case 1: // Can run a number of protocols dependent on which mode is selected
@@ -132,6 +134,8 @@ int main() {
 					side.setLevelSpeed(1);
 					break;
 				default:
+					hero.resetWins();
+					side.resetWins();
 					hero.setLevelSpeed(2);
 					side.setLevelSpeed(2);
 				}
@@ -174,6 +178,10 @@ int main() {
 					setColor(15);
 					cout << "What's the matter? Can't read?\n\n";
 				}
+				break;
+			case 6:
+				setColor(11);
+				cout << endl << file.readFact(rngesus(1, 75)) << "\n\n"; // Gives the player a random piece of trivia on a sound chip
 				break;
 			}
 			break;
@@ -782,6 +790,8 @@ int main() {
 			if (attackType <= 2) {
 				if (damage < 0 && connects) {
 					cout << "You attack the " << hoard[response - 1].getName() << " for " << -damage << " damage.\n";
+					setColor(7);
+					hoard[response - 1].checkForDefeat();
 				}
 				else {
 					cout << "The " << hoard[response - 1].getName() << " didn't take any damage.\n";
@@ -1159,8 +1169,8 @@ int main() {
 			break;
 		case PREPARATION: // Allows the player to use items before climbing a floor
 			setColor(15);
-			cout << "1. Keep going up\n2. Prepare for battle\n";
-			getInput(2);
+			cout << "1. Keep going up\n2. Prepare for battle\n3. Check stats\n";
+			getInput(3);
 
 			switch (response) {
 			case 1:
@@ -1181,6 +1191,13 @@ int main() {
 				prevSequence = PREPARATION;
 				sequence = INVENTORY;
 				break;
+			case 3:
+				setColor(15);
+				activeHero->print();
+
+				if (gameMode == COOP) {
+					idleHero->print();
+				}
 			}
 
 			break;
@@ -1294,7 +1311,7 @@ int main() {
 
 			cout << "You can buy " << inv.getBuyCap() << " more items.\n";
 			setColor(15);
-			cout << "0. Stop buying\n";
+			cout << "0. Leave the shop\n";
 			// Display items
 			for (POS i = 0; i < 9; i++) {
 				cout << i + 1 << ". Buy a " << inv.getItem(i) << " (" << inv.getPrice(i) << ")\n";
@@ -1516,12 +1533,15 @@ int main() {
 			cout << "===========================\n";
 			if (hero.isAlive()) { // If Player one was left standing
 				cout << "= Player 1 is the winner! =\n";
+				hero.addToWins();
 			}
 			else if (side.isAlive()) { // If Player two was left standing
 				cout << "= Player 2 is the winner! =\n";
+				side.addToWins();
 			}
 			cout << "===========================\n\n";
-
+			setColor(13);
+			cout << "Total Wins:\nPlayer 1: " << hero.getWinCount() << "\nPlayer 2: " << side.getWinCount() << "\n\n";
 			sequence = TITLE;
 			break;
 		default: // Exit the loop and therefore the game
@@ -1567,19 +1587,19 @@ Hero initialize(Hero h) {
 	upgradeScheme[TOAD][0] = 2;
 	upgradeScheme[TOAD][1] = 0;
 	upgradeScheme[TOAD][2] = 1;
-	upgradeScheme[TOAD][3] = 0;
-	upgradeScheme[TOAD][4] = 2;
+	upgradeScheme[TOAD][3] = 1;
+	upgradeScheme[TOAD][4] = 1;
 	// Toadette
 	upgradeScheme[TOADETTE][0] = 2;
 	upgradeScheme[TOADETTE][1] = 0;
 	upgradeScheme[TOADETTE][2] = 1;
 	upgradeScheme[TOADETTE][3] = 2;
-	upgradeScheme[TOADETTE][4] = 1;
+	upgradeScheme[TOADETTE][4] = 0;
 	// Yoshi
 	upgradeScheme[YOSHI][0] = 1;
 	upgradeScheme[YOSHI][1] = 0;
-	upgradeScheme[YOSHI][2] = 2;
-	upgradeScheme[YOSHI][3] = 0;
+	upgradeScheme[YOSHI][2] = 1;
+	upgradeScheme[YOSHI][3] = 1;
 	upgradeScheme[YOSHI][4] = 2;
 	// Spek
 	for (POS i = 0; i < 5; i++) {
@@ -1647,7 +1667,7 @@ void story() {
 	cout << "/ friends to help them after they had accidentally bought Bowser   /\n";
 	cout << "/ enough time to strengthen the power of his orb, and minions with /\n";
 	cout << "/ it. They all went back to Trial Tower, that was now remodeled by /\n";
-	cout << "/ by Bowser into the much more ominous... Treachery Tower!         /\n";
+	cout << "/ Bowser into the much more ominous... Treachery Tower!            /\n";
 	cout << "/                                                                  /\n";
 	cout << "/ VERSUS:                                                          /\n";
 	cout << "/ After relinquishing the orb's energy, Peach offered up a reward  /\n";
@@ -1774,6 +1794,10 @@ void instructions() {
 // NEW: Lets the user know of new updates
 void patchNotes() {
 	setColor(11);
+	cout << "------------------------\n";
+	cout << "Patch Notes for V2.0.1:\n";
+	cout << "-Quality of life changes\n\n";
+
 	cout << "-----------------------------------------------------------------------\n";
 	cout << "Patch Notes for V2.0.0:\n";
 	cout << "-Multiplayer is here! YAAAAY!!! Now includes co-op mode and versus mode\n";

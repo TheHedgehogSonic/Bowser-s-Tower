@@ -6,6 +6,7 @@
 using namespace std;
 
 typedef unsigned int POS32;
+typedef unsigned short POS;
 
 class FileIO {
 public:
@@ -14,6 +15,7 @@ public:
 	POS32 getHighScore();
 	void setFilePath(string set);
 	POS32 loadHighScore();
+	string readFact(POS factNum);
 	void saveHighScore(POS32 newHigh);
 private:
 	ifstream reader;
